@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Sprint Tycoon - Fluxo Completo</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f8fafc; padding: 10px; margin: 0; height: 100vh; display: flex; flex-direction: column; }
+        
+        /* Header Compacto */
+        header { background: #0f172a; color: white; padding: 10px 20px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); flex-shrink: 0; }
+        .stats-group { display: flex; gap: 15px; align-items: center; font-size: 0.9em; }
+        
+        /* Barra de Energia */
+        .energy-container { width: 100px; background: #334155; height: 16px; border-radius: 8px; overflow: hidden; position: relative; display: inline-block; vertical-align: middle; }
+        .energy-fill { height: 100%; background: #10b981; width: 100%; transition: width 0.3s; }
+
+        /* Board Kanban (Scroll Horizontal) */
+        .board-container { flex: 1; overflow-x: auto; padding-bottom: 10px; }
+        .board { display: flex; gap: 15px; min-width: 1200px; height: 95%; }
+        
+        /* Colunas */
+        .column { flex: 1; background: #e2e8f0; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; min-width: 220px; }
+        .column-header { text-align: center; color: #475569; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 10px; font-weight: bold; font-size: 0.9em; text-transform: uppercase; }
+        .column-content { flex: 1; overflow-y: auto; padding-right: 5px; }
+
+        /* Cores das Colunas */
+        .col-backlog { background: #f1f5f9; }
+        .col-todo { background: #e2e8f0; }
+        .col-doing { background: #dbeafe; border-top: 4px solid #3b82f6; }
+        .col-test { background: #fae8ff; border-top: 4px solid #d946ef; }
+        .col-deploy { background: #fff7ed; border-top: 4px solid #f97316; }
+
+        /* Cartas */
+        .card { background: white; padding: 10px; margin-bottom: 8px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #ccc; cursor: pointer; transition: transform 0.1s; user-select: none; font-size: 0.9em; }
+        .card:active { transform: scale(0.98); }
+        .card.blocked { opacity: 0.6; filter: grayscale(1); cursor: not-allowed; }
+
+        /* Barras de Progresso */
+        .progress-row { margin-top: 8px; }
+        .p-label { font-size: 0.7em; color: #666; display: flex; justify-content: space-between; margin-bottom: 2px; }
+        .p-track { height: 6px; background: #ddd; border-radius: 3px; overflow: hidden; }
+        .p-fill { height: 100%; width: 0%; transition: width 0.2s; }
+
+        /* Botões */
+        .btn { padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; color: white; font-size: 0.85em; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-next-day { background: #f59e0b; color: #000; } /* Amarelo */
+        .btn-deploy { background: #10b981; } /* Verde */
+        .btn-start { background: #3b82f6; } /* Azul */
+        .btn-admin { background: #475569; font-size: 0.7em; margin-left: 10px; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div style="font-weight: bold; display:flex; flex-direction:column;">
+            <span>Sprint Tycoon</span>
+            <span id="dia-display" style="font-size:0.7em; color:#94a3b8; font-weight:normal">Dia 0</span>
+        </div>
+        
+        <div class="stats-group">
+            <span id="fase-display">PLANNING</span>
+            
+            <div title="Energia recarrega a cada novo dia">
+                ⚡ Energia: 
+                <div class="energy-container">
+                    <div id="energy-bar" class="energy-fill"></div>
+                </div>
+                <span id="energy-text">--</span>
+            </div>
+        </div>
+
+        <div id="controls-area">
+            </div>
+    </header>
+
+    <div class="board-container">
+        <div class="board">
+            
+            <div class="column col-backlog" id="col-backlog">
+                <div class="column-header">Product Backlog</div>
+                <div class="column-content" id="list-backlog"></div>
+            </div>
+
+            <div class="column col-todo">
+                <div class="column-header">Sprint Backlog (To Do)</div>
+                <div class="column-content" id="list-todo"></div>
+            </div>
+
+            <div class="column col-doing">
+                <div class="column-header">In Progress (Dev)</div>
+                <div class="column-content" id="list-doing"></div>
+            </div>
+
+            <div class="column col-test">
+                <div class="column-header">Testing (QA)</div>
+                <div class="column-content" id="list-testing"></div>
+            </div>
+
+            <div class="column col-deploy">
+                <div class="column-header">Ready to Deploy 📦</div>
+                <div class="column-content" id="list-deploy"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, update, runTransaction } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+
+        // --- ⚠️ SUAS CHAVES AQUI ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyD79HMQBPz0v8wK2KfwI_nrNzEjmhjqS0U",
+            authDomain: "sprinttycoon-treino.firebaseapp.com",
+            databaseURL: "https://sprinttycoon-treino-default-rtdb.firebaseio.com",
+            projectId: "sprinttycoon-treino",
+            storageBucket: "sprinttycoon-treino.firebasestorage.app",
+            messagingSenderId: "23600382558",
+            appId: "1:23600382558:web:f6a1cba74c78fd38e8aacf"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const gameRef = ref(db, 'partida_fluxo_v2');
+
+        // --- 1. RENDERIZAÇÃO ---
+        onValue(gameRef, (snapshot) => {
+            const dados = snapshot.val();
+            if(dados) atualizarTela(dados);
+        });
+
+        function atualizarTela(dados) {
+            const fase = dados.fase;
+            const dia = dados.dia || 1;
+            
+            // Header
+            document.getElementById('fase-display').innerText = fase === 'planning' ? "PLANNING" : "EXECUÇÃO";
+            document.getElementById('dia-display').innerText = fase === 'planning' ? "Pré-Sprint" : `Dia ${dia} / 10`;
+            
+            // Energia
+            const energiaMax = 100;
+            document.getElementById('energy-text').innerText = `${dados.energia}/${energiaMax}`;
+            document.getElementById('energy-bar').style.width = `${(dados.energia/energiaMax)*100}%`;
+            if(dados.energia < 10) document.getElementById('energy-bar').style.backgroundColor = '#ef4444';
+            else document.getElementById('energy-bar').style.backgroundColor = '#10b981';
+
+            // Botões de Controle
+            const controls = document.getElementById('controls-area');
+            controls.innerHTML = '';
+
+            if (fase === 'planning') {
+                controls.innerHTML = `<button class="btn btn-start" onclick="window.iniciarSprint()">🚀 Iniciar Sprint</button>`;
+            } else if (fase === 'sprint') {
+                controls.innerHTML = `
+                    <button class="btn btn-next-day" onclick="window.proximoDia()">🌙 Encerrar Dia (${dia})</button>
+                    <button class="btn btn-deploy" onclick="window.finalizarSprint()">🏁 Fazer Deploy (Fim da Sprint)</button>
+                `;
+            }
+            // Botão Admin sempre acessível (pequeno)
+            controls.innerHTML += `<button class="btn btn-admin" onclick="window.setupInicial()">🛠️ Reset</button>`;
+
+            // Renderizar Colunas
+            renderizarCartas(dados.cartas, fase);
+        }
+
+        function renderizarCartas(cartas, fase) {
+            // Limpa todas as colunas
+            ['backlog', 'todo', 'doing', 'testing', 'deploy'].forEach(id => {
+                document.getElementById(`list-${id}`).innerHTML = '';
+            });
+
+            if(!cartas) return;
+
+            Object.entries(cartas).forEach(([id, carta]) => {
+                const cardHTML = criarHTMLCarta(id, carta, fase);
+                
+                // Mapeamento status -> ID da coluna HTML
+                const mapaColunas = {
+                    'backlog': 'list-backlog',
+                    'todo': 'list-todo',
+                    'doing': 'list-doing',
+                    'testing': 'list-testing',
+                    'deploy': 'list-deploy',
+                    'done': 'list-deploy' // Visualmente fica no deploy até encerrar
+                };
+
+                const destino = document.getElementById(mapaColunas[carta.status]);
+                if (destino) destino.appendChild(cardHTML);
+            });
+        }
+
+        function criarHTMLCarta(id, carta, fase) {
+            const div = document.createElement('div');
+            div.className = 'card';
+            
+            // Definição de Cores da Borda Lateral
+            if (carta.status === 'doing') div.style.borderLeftColor = '#3b82f6';
+            if (carta.status === 'testing') div.style.borderLeftColor = '#d946ef';
+            if (carta.status === 'deploy') div.style.borderLeftColor = '#f97316';
+            if (carta.status === 'done') { div.style.borderLeftColor = '#10b981'; div.style.opacity = '0.6'; }
+
+            // Conteúdo Básico
+            let html = `
+                <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:5px">
+                    <span>${carta.titulo}</span>
+                    <span style="background:#d1fae5; color:#065f46; padding:2px 6px; borderRadius:4px; font-size:0.8em">$${carta.valor}</span>
+                </div>
+                <div style="font-size:0.8em; margin-bottom:5px">Eff Dev: ${carta.esforco_dev} | QA: ${carta.esforco_qa}</div>
+            `;
+
+            // Barras de Progresso (Só mostra na fase de Sprint e se não estiver no backlog)
+            if (fase === 'sprint' && carta.status !== 'backlog' && carta.status !== 'todo') {
+                
+                // Barra de Dev
+                const pDev = Math.min(100, (carta.prog_dev / carta.esforco_dev) * 100);
+                html += `
+                    <div class="progress-row">
+                        <div class="p-label"><span>Dev (Code)</span> <span>${carta.prog_dev}/${carta.esforco_dev}</span></div>
+                        <div class="p-track"><div class="p-fill" style="width:${pDev}%; background:#3b82f6"></div></div>
+                    </div>
+                `;
+
+                // Barra de QA (Só mostra se já saiu de doing ou se já tem progresso)
+                if (carta.status === 'testing' || carta.status === 'deploy' || carta.prog_qa > 0) {
+                    const pQA = Math.min(100, (carta.prog_qa / carta.esforco_qa) * 100);
+                    html += `
+                        <div class="progress-row">
+                            <div class="p-label"><span>QA (Test)</span> <span>${carta.prog_qa}/${carta.esforco_qa}</span></div>
+                            <div class="p-track"><div class="p-fill" style="width:${pQA}%; background:#d946ef"></div></div>
+                        </div>
+                    `;
+                }
+            }
+
+            if(carta.status === 'deploy') {
+                html += `<div style="margin-top:5px; text-align:center; font-weight:bold; color:#f97316; font-size:0.8em">⏳ Aguardando Deploy</div>`;
+            }
+
+            div.innerHTML = html;
+            div.onclick = () => interagirCarta(id, carta, fase);
+
+            return div;
+        }
+
+        // --- 2. LÓGICA DO JOGO ---
+
+        window.interagirCarta = function(id, carta, fase) {
+            
+            // FASE PLANNING: Backlog <-> To Do
+            if (fase === 'planning') {
+                const novoStatus = carta.status === 'backlog' ? 'todo' : 'backlog';
+                update(ref(db, `partida_fluxo_v2/cartas/${id}`), { status: novoStatus });
+                return;
+            }
+
+            // FASE SPRINT: Fluxo de Trabalho
+            if (fase === 'sprint') {
+                
+                // Regra: Só pode mover se tiver Energia
+                runTransaction(gameRef, (jogo) => {
+                    if (!jogo) return;
+                    if (jogo.energia <= 0) return; // Sem energia
+
+                    const c = jogo.cartas[id];
+                    
+                    // 1. Mover de ToDo -> Doing
+                    if (c.status === 'todo') {
+                        c.status = 'doing'; // Não gasta energia para puxar, só para trabalhar
+                    }
+                    
+                    // 2. Trabalhar em Doing (Dev)
+                    else if (c.status === 'doing') {
+                        jogo.energia--; // Gasta 1 energia
+                        c.prog_dev++;
+                        if (c.prog_dev >= c.esforco_dev) {
+                            c.prog_dev = c.esforco_dev;
+                            c.status = 'testing'; // Passa para QA
+                        }
+                    }
+
+                    // 3. Trabalhar em Testing (QA)
+                    else if (c.status === 'testing') {
+                        jogo.energia--; // Gasta 1 energia
+                        c.prog_qa++;
+                        if (c.prog_qa >= c.esforco_qa) {
+                            c.prog_qa = c.esforco_qa;
+                            c.status = 'deploy'; // Pronto para Deploy
+                        }
+                    }
+
+                    // Se for 'deploy', não faz nada (espera o fim da sprint)
+                    return jogo;
+                });
+            }
+        };
+
+        // --- CONTROLES DE TEMPO ---
+
+        window.iniciarSprint = function() {
+            update(gameRef, { fase: 'sprint', dia: 1, energia: 100 });
+        };
+
+        window.proximoDia = function() {
+            runTransaction(gameRef, (jogo) => {
+                if(jogo) {
+                    jogo.dia = (jogo.dia || 1) + 1;
+                    jogo.energia = 100; // Recarrega energia full
+                    // Aqui poderíamos adicionar eventos aleatórios (bugs) no futuro
+                }
+                return jogo;
+            });
+        };
+
+        window.finalizarSprint = function() {
+            if(!confirm("Tem certeza? Isso fará o deploy de todos os itens prontos.")) return;
+
+            runTransaction(gameRef, (jogo) => {
+                if(jogo) {
+                    let valorEntregue = 0;
+                    
+                    // Varre cartas e move as 'deploy' para 'done'
+                    Object.values(jogo.cartas).forEach(c => {
+                        if (c.status === 'deploy') {
+                            c.status = 'done';
+                            valorEntregue += c.valor;
+                        }
+                    });
+
+                    // Mensagem de Feedback
+                    alert(`🏁 SPRINT ENCERRADA!\n\nVocê entregou $${valorEntregue} de valor para o negócio.`);
+                    
+                    // Reseta para planning da próxima sprint? Ou encerra?
+                    // Por enquanto vamos manter na tela final.
+                }
+                return jogo;
+            });
+        };
+
+        // --- SETUP INICIAL ---
+        window.setupInicial = function() {
+            if(!confirm("Resetar Jogo?")) return;
+
+            const cartasExemplo = {
+                c1: { titulo: "Login Social", valor: 100, esforco_dev: 8, prog_dev:0, esforco_qa: 3, prog_qa:0, status: 'backlog' },
+                c2: { titulo: "Checkout V2", valor: 250, esforco_dev: 15, prog_dev:0, esforco_qa: 8, prog_qa:0, status: 'backlog' },
+                c3: { titulo: "Home Page", valor: 80, esforco_dev: 5, prog_dev:0, esforco_qa: 2, prog_qa:0, status: 'backlog' },
+                c4: { titulo: "API Integração", valor: 150, esforco_dev: 10, prog_dev:0, esforco_qa: 5, prog_qa:0, status: 'backlog' },
+                c5: { titulo: "Refatorar CSS", valor: 0, esforco_dev: 6, prog_dev:0, esforco_qa: 1, prog_qa:0, status: 'backlog' },
+                c6: { titulo: "Rodapé Site", valor: 20, esforco_dev: 2, prog_dev:0, esforco_qa: 1, prog_qa:0, status: 'backlog' }
+            };
+
+            set(gameRef, {
+                fase: 'planning',
+                dia: 0,
+                energia: 100,
+                cartas: cartasExemplo
+            });
+        }
+
+        // Torna funções globais para o HTML acessar
+        window.iniciarSprint = window.iniciarSprint;
+        window.proximoDia = window.proximoDia;
+        window.finalizarSprint = window.finalizarSprint;
+        window.setupInicial = window.setupInicial;
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Sprint Tycoon - Admin</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dark-theme admin-container">
+    <h1>📡 Central de Comando <span>Admin</span></h1>
+
+    <div class="section-box">
+        <h3>1. Cadastro de Equipes</h3>
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="new-team-input" placeholder="Nome da Equipe" style="flex:1; padding:10px;">
+            <button id="btn-add-team" style="background:#3b82f6; color:white; border:none; padding:0 20px; border-radius:5px;">+ Adicionar</button>
+        </div>
+        <div id="teams-container" style="margin-top:15px; display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));"></div>
+        <button id="btn-reset-teams" style="color:#ef4444; background:none; border:none; margin-top:10px; text-decoration:underline;">Resetar Lista</button>
+    </div>
+
+    <div id="command-box" class="section-box" style="opacity:0.5; pointer-events:none;">
+        <h3 style="color:#ef4444">2. Comandos Globais</h3>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+            <button class="big-btn" id="cmd-setup" style="background:#dc2626;">📦 1. SETUP (RESET)</button>
+            <button class="big-btn" id="cmd-start" style="background:#16a34a;">🚀 2. INICIAR SPRINT</button>
+            <button class="big-btn" id="cmd-day" style="background:#ca8a04;">📅 3. AVANÇAR DIA</button>
+            <button class="big-btn" id="cmd-deploy" style="background:#0891b2;">🏁 4. FINALIZAR SPRINT</button>
+            <button class="big-btn" id="cmd-bug" style="background:#7c3aed;">🔥 EVENTO: BUG</button>
+        </div>
+    </div>
+
+    <div id="log" style="font-family:monospace; color:#10b981; height:100px; overflow-y:auto; background:#020617; padding:10px; border-radius:8px;">> Sistema pronto.</div>
+
+    <script type="module" src="js/admin.js"></script>
+</body>
+</html>

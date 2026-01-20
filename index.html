@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Sprint Tycoon - Player</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="light-theme">
+
+    <div id="login-screen" style="position:fixed; width:100%; height:100%; background:#0f172a; display:flex; justify-content:center; align-items:center; z-index:100;">
+        <div style="background:#1e293b; padding:30px; border-radius:10px; text-align:center;">
+            <h2 style="color:white">🎮 Login</h2>
+            <input type="text" id="input-sala" placeholder="Nome da Equipe" style="padding:10px; font-size:1.2em;">
+            <button id="btn-login" style="background:#3b82f6; color:white; padding:10px; border:none; width:100%; margin-top:15px;">ENTRAR</button>
+        </div>
+    </div>
+
+    <div id="game-ui" style="display:none; flex-direction:column; height:100%;">
+        <header class="game-header">
+            <div class="header-left">
+                <span class="logo">Sprint Tycoon</span>
+                <span id="room-display" class="room-badge">...</span>
+                <span id="fase-tag" class="phase-badge">LOADING</span>
+            </div>
+            
+            <div class="energy-wrapper">
+                <div class="energy-group">
+                    <span class="energy-label">DEV 🛠️</span>
+                    <div class="energy-track">
+                        <div id="bar-dev" class="energy-fill bg-dev" style="width: 0%"></div>
+                    </div>
+                    <span id="text-dev" class="energy-value">0</span>
+                </div>
+
+                <div class="energy-group">
+                    <span class="energy-label">QA 🔍</span>
+                    <div class="energy-track">
+                        <div id="bar-qa" class="energy-fill bg-qa" style="width: 0%"></div>
+                    </div>
+                    <span id="text-qa" class="energy-value">0</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="board-container">
+            <div class="board">
+                <div class="column"><div class="column-header">Backlog</div><div id="list-backlog"></div></div>
+                <div class="column"><div class="column-header">Sprint Backlog</div><div id="list-todo"></div></div>
+                <div class="column"><div class="column-header">Doing (Max 4)</div><div id="list-doing"></div></div>
+                <div class="column"><div class="column-header">Testing</div><div id="list-testing"></div></div>
+                <div class="column"><div class="column-header">Deploy</div><div id="list-deploy"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/player.js"></script>
+</body>
+</html>

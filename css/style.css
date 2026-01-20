@@ -1,0 +1,183 @@
+/* Reset e Base */
+body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+body.dark-theme { background: #0f172a; color: white; padding: 20px; }
+body.light-theme { background: #f8fafc; height: 100vh; display: flex; flex-direction: column; }
+
+/* Componentes Globais */
+button { cursor: pointer; transition: filter 0.2s; }
+button:hover { filter: brightness(1.1); }
+
+/* ADMIN Styles */
+.admin-container { max-width: 900px; margin: 0 auto; }
+.section-box { background: #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #334155; }
+.big-btn { padding: 20px; border: none; border-radius: 8px; font-weight: bold; color: white; font-size: 1.1em; width: 100%; text-align: left; }
+.team-tag { background: #334155; padding: 10px; margin: 5px; border-radius: 6px; border-left: 4px solid #10b981; display: flex; justify-content: space-between; }
+
+/* PLAYER Styles */
+/* --- PLAYER Styles --- */
+
+/* Container do Quadro */
+.board-container { 
+    flex: 1; 
+    overflow: hidden; /* Evita scroll duplo na página inteira */
+    background: #f0f2f5; 
+    position: relative;
+}
+
+/* O Quadro em si */
+.board { 
+    display: flex; 
+    gap: 15px; 
+    height: 100%; 
+    padding: 15px; 
+    box-sizing: border-box;
+    overflow-x: auto; /* Permite rolagem horizontal se não couber na tela */
+    align-items: stretch; /* Garante que todas as colunas tenham a mesma altura */
+}
+
+/* Estilo Base das Colunas */
+.column { 
+    background: #e2e8f0; 
+    border-radius: 8px; 
+    padding: 10px; 
+    display: flex; 
+    flex-direction: column; 
+    max-height: 100%; /* Respeita a altura da tela */
+    
+    /* COMPORTAMENTO DE LARGURA */
+    flex: 1;             /* Tenta ocupar espaço igual */
+    min-width: 240px;    /* Largura mínima para não esmagar os cards */
+    flex-shrink: 0;      /* Impede que a coluna encolha menos que o min-width */
+}
+
+/* --- TRUQUE: Backlog mais largo --- */
+/* Seleciona a primeira coluna (Backlog) e força ela a ser maior */
+.column:first-child {
+    flex: 0 0 320px; /* Não cresce, não encolhe, fixa em 320px */
+    border-right: 2px solid #cbd5e1; /* Visual extra para separar o backlog */
+}
+
+.column-header { 
+    text-align: center; 
+    color: #475569; 
+    font-weight: bold; 
+    margin-bottom: 10px; 
+    border-bottom: 2px solid #cbd5e1; 
+    padding-bottom: 8px;
+    flex-shrink: 0; /* O cabeçalho nunca deve sumir no scroll */
+}
+
+/* Área onde ficam os Cards (com rolagem vertical interna) */
+.column > div:not(.column-header) {
+    flex: 1;           /* Ocupa todo o espaço vertical restante */
+    overflow-y: auto;  /* Habilita rolagem vertical DENTRO da coluna */
+    padding-right: 5px; /* Espaço para a barra de rolagem não cobrir o card */
+    min-height: 0;      /* Fix para o Firefox entender o scroll flex */
+}
+
+/* Estilização da Barra de Rolagem (Opcional, mas fica bonito) */
+.column > div::-webkit-scrollbar { width: 6px; }
+.column > div::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+
+/* Cards */
+.card {
+    background: white;
+    padding: 12px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-left: 5px solid #ccc;
+    position: relative;
+    cursor: pointer;
+    color: #333;
+    font-size: 0.9em;
+    user-select: none;
+    transition: transform 0.1s;
+}
+
+.card:hover { transform: translateY(-2px); }
+
+/* Tipos de Cartão */
+.card.feature-card { border-left-width: 8px; }
+.card.tech-card { background-color: #f1f5f9; border-left-color: #334155; }
+
+/* Badges (Tags no topo direito) */
+.feature-badge, .tech-badge {
+    position: absolute;
+    top: -8px;
+    right: -5px;
+    font-size: 0.6em;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-weight: bold;
+    color: white;
+}
+.feature-badge { background: #333; }
+.tech-badge { background: #334155; }
+
+/* Informações internas */
+.card-origin { font-size: 0.7em; color: #666; margin-bottom: 5px; }
+.card-value { font-size: 0.8em; color: #666; margin-top: 2px; }
+
+/* Barras de Progresso */
+.progress-row { margin-top: 8px; }
+.p-track { height: 5px; background: #ddd; border-radius: 3px; overflow: hidden; }
+.p-fill { height: 100%; width: 0%; transition: width 0.2s; }
+.info-row { font-size: 0.8em; color: #666; margin-top: 4px; display: flex; justify-content: space-between; }
+
+/* Cores de Status e Barras */
+.bg-dev { background: #3b82f6; }
+.bg-qa { background: #d946ef; }
+
+/* Botão de Deploy */
+.deploy-btn-hint {
+    font-size: 0.7em;
+    color: #f97316;
+    font-weight: bold;
+    text-align: center;
+    margin-top: 5px;
+    border: 1px dashed #f97316;
+    padding: 2px;
+    border-radius: 4px;
+}
+.deploy-btn-hint.free { color: #10b981; border-color: #10b981; }
+
+/* --- CABEÇALHO E ENERGIA --- */
+.game-header {
+    background: #0f172a;
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    z-index: 10;
+}
+
+.header-left { display: flex; align-items: center; gap: 10px; }
+.logo { font-weight: bold; font-size: 1.1em; }
+.room-badge { background: #6366f1; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; }
+.phase-badge { color: #94a3b8; font-size: 0.8em; border: 1px solid #334155; padding: 2px 8px; border-radius: 4px; }
+
+/* Grupo de Energia */
+.energy-wrapper { display: flex; gap: 20px; align-items: center; }
+.energy-group { display: flex; align-items: center; gap: 8px; }
+.energy-label { font-size: 0.8em; font-weight: bold; color: #cbd5e1; }
+.energy-value { font-weight: bold; min-width: 20px; text-align: right; }
+
+/* Barras */
+.energy-track {
+    width: 120px;
+    height: 12px;
+    background: #334155;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid #475569;
+}
+
+.energy-fill {
+    height: 100%;
+    width: 0%; /* Será controlado via JS */
+    transition: width 0.3s ease-out;
+}

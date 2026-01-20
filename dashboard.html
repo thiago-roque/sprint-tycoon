@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Sprint Tycoon</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { text-align: center; color: #3b82f6; }
+        
+        .chart-box { background: #1e293b; padding: 20px; border-radius: 10px; border: 1px solid #334155; margin-bottom: 20px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; }
+        th { color: #94a3b8; }
+        tr:hover { background: #334155; }
+        .val-money { color: #10b981; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>📊 Dashboard de Evolução</h1>
+        
+        <div class="chart-box">
+            <canvas id="myChart"></canvas>
+        </div>
+
+        <div class="chart-box">
+            <h3>Ranking Atual (Valor Acumulado)</h3>
+            <table id="ranking-table">
+                <thead>
+                    <tr>
+                        <th>Equipe</th>
+                        <th>Sprint Atual</th>
+                        <th>Valor Acumulado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+
+        const firebaseConfig = {
+                apiKey: "AIzaSyD79HMQBPz0v8wK2KfwI_nrNzEjmhjqS0U",
+                authDomain: "sprinttycoon-treino.firebaseapp.com",
+                databaseURL: "https://sprinttycoon-treino-default-rtdb.firebaseio.com",
+                projectId: "sprinttycoon-treino",
+                storageBucket: "sprinttycoon-treino.firebasestorage.app",
+                messagingSenderId: "23600382558",
+                appId: "1:23600382558:web:f6a1cba74c78fd38e8aacf"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        
+        let chartInstance = null;
+
+        // Ouve TODAS as partidas
+        const partidasRef = ref(db, 'partidas');
+
+        onValue(partidasRef, (snap) => {
+            const data = snap.val();
+            if(!data) return;
+
+            const times = Object.keys(data);
+            const datasets = [];
+            const ranking = [];
+
+            // Prepara dados para o Gráfico
+            times.forEach(nomeTime => {
+                const timeData = data[nomeTime];
+                const historico = timeData.historico || {};
+                
+                // Extrai pontos [sprint 1, sprint 2, ...]
+                // Assumindo sprint sequencial
+                const pontos = [];
+                Object.values(historico).sort((a,b) => a.sprint - b.sprint).forEach(h => {
+                    pontos.push({ x: `Sprint ${h.sprint}`, y: h.valor_total });
+                });
+
+                // Cor aleatória para a linha
+                const color = `hsl(${Math.random() * 360}, 70%, 60%)`;
+
+                datasets.push({
+                    label: timeData.nome || nomeTime, // Tenta pegar nome bonito se tiver, senão usa ID
+                    data: pontos,
+                    borderColor: color,
+                    backgroundColor: color,
+                    tension: 0.3
+                });
+
+                ranking.push({
+                    nome: nomeTime,
+                    sprint: timeData.sprint || 1,
+                    total: timeData.valor_acumulado || 0
+                });
+            });
+
+            atualizarGrafico(datasets);
+            atualizarTabela(ranking);
+        });
+
+        function atualizarGrafico(datasets) {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            
+            if (chartInstance) {
+                chartInstance.data.datasets = datasets;
+                chartInstance.update();
+            } else {
+                chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: { datasets: datasets },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: { beginAtZero: true, title: { display: true, text: 'Valor de Negócio ($)' } }
+                        },
+                        plugins: {
+                            legend: { labels: { color: 'white' } }
+                        }
+                    }
+                });
+            }
+        }
+
+        function atualizarTabela(ranking) {
+            // Ordena do maior para o menor
+            ranking.sort((a,b) => b.total - a.total);
+
+            const tbody = document.querySelector('#ranking-table tbody');
+            tbody.innerHTML = '';
+
+            ranking.forEach(r => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="text-transform:capitalize"><strong>${r.nome.replace(/_/g, ' ')}</strong></td>
+                        <td>${r.sprint}</td>
+                        <td class="val-money">$${r.total}</td>
+                    </tr>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
